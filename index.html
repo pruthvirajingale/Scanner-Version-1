@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QR Attendance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="QR Attend" />
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #171717;
+      --surface-hover: #1e1e1e;
+      --border: 1px solid #2a2a2a;
+      --ink: #f0f0ee;
+      --ink-muted: #6b6b6b;
+      --ink-faint: #333333;
+      --accent: #e8e8e6;
+      --ok: #4ade80;
+      --ok-bg: #0d1f14;
+      --ok-border: #1a3d26;
+      --err: #f87171;
+      --err-bg: #1f0d0d;
+      --err-border: #3d1a1a;
+      --radius: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px 80px;
+    }
+
+    .shell { width: 100%; max-width: 420px; }
+
+    /* ── Header ── */
+    .header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {}
+    .header-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 5px;
+    }
+    .header h1 {
+      font-size: 21px;
+      font-weight: 300;
+      color: var(--ink);
+      letter-spacing: -0.03em;
+    }
+    .header-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      margin-top: 4px;
+    }
+
+    /* ── Student pill ── */
+    #studentInfo {
+      display: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+      background: var(--surface);
+      border: var(--border);
+      border-radius: 100px;
+      padding: 7px 14px;
+      margin-bottom: 16px;
+      width: fit-content;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Sections ── */
+    .section {
+      background: var(--surface);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 8px;
+    }
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 14px;
+    }
+
+    /* ── Inputs ── */
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      background: #111111;
+      color: var(--ink);
+      border: var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+    input + input { margin-top: 8px; }
+    input::placeholder { color: #3d3d3d; }
+    input:focus { border-color: #444; background: #141414; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6b6b' d='M6 8L1.5 3.5h9z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    select:focus { border-color: #444; background-color: #141414; }
+    select option { background: #1a1a1a; color: var(--ink); }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+      border: none;
+      letter-spacing: 0.01em;
+      -webkit-appearance: none;
+      touch-action: manipulation;
+    }
+    .btn:active { opacity: 0.65; transform: scale(0.985); }
+
+    .btn-primary {
+      background: var(--ink);
+      color: #0d0d0d;
+      margin-top: 14px;
+    }
+    .btn-primary:hover { background: #d8d8d6; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--ink-muted);
+      border: var(--border);
+      margin-top: 8px;
+    }
+    .btn-outline:hover { background: var(--surface-hover); color: var(--ink); }
+
+    /* ── Scanner area ── */
+    #reader {
+      border-radius: 8px;
+      overflow: hidden;
+      background: #111;
+      border: var(--border);
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #reader-placeholder {
+      text-align: center;
+      color: #2e2e2e;
+      font-size: 13px;
+      line-height: 1.8;
+      padding: 24px;
+    }
+    #reader-placeholder svg {
+      display: block;
+      margin: 0 auto 12px;
+    }
+
+    /* ── Status ── */
+    #status { margin-top: 10px; }
+    .msg {
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+    .msg-ok  { color: var(--ok);  background: var(--ok-bg);  border: 1px solid var(--ok-border); }
+    .msg-err { color: var(--err); background: var(--err-bg); border: 1px solid var(--err-border); }
+
+    /* ── Install banner ── */
+    #install-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      padding: 0 16px 24px;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    #install-banner.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    .install-card {
+      background: #1a1a1a;
+      border: 1px solid #2e2e2e;
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      max-width: 420px;
+      margin: 0 auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .install-icon {
+      width: 40px; height: 40px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .install-icon svg { opacity: 0.7; }
+    .install-text { flex: 1; min-width: 0; }
+    .install-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+    .install-sub {
+      font-size: 12px;
+      color: var(--ink-muted);
+      font-family: 'DM Mono', monospace;
+    }
+    .install-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .install-btn {
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      border: none;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      transition: opacity 0.15s;
+    }
+    .install-btn:active { opacity: 0.6; }
+    .install-btn-primary { background: var(--ink); color: #0d0d0d; }
+    .install-btn-ghost {
+      background: transparent;
+      color: var(--ink-muted);
+      font-size: 12px;
+      padding: 7px 4px;
+    }
+
+    @media (max-width: 360px) {
+      body { padding: 24px 14px 72px; }
+      .header h1 { font-size: 19px; }
+    }
+    @supports (-webkit-touch-callout: none) {
+      input, select, .btn { font-size: 16px; }
+      #install-banner { padding-bottom: env(safe-area-inset-bottom, 24px); }
+    }
+  </style>
+</head>
+
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <p class="header-label">Attendance System</p>
+      <h1>QR Scanner</h1>
+    </div>
+    <div class="header-dot" id="statusDot"></div>
+  </div>
+
+  <div id="studentInfo"></div>
+
+  <div class="section" id="studentBox" style="display:none;">
+    <p class="section-label">Your Details</p>
+    <input type="text" id="roll" placeholder="Roll Number" />
+    <input type="text" id="name" placeholder="Full Name" />
+    <button class="btn btn-primary" onclick="saveStudent()">Save</button>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Camera</p>
+    <div id="reader">
+      <div id="reader-placeholder">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="3" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="14" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="18.5" y="14" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="14" y="18.5" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="18.5" y="18.5" width="2.5" height="2.5" rx="0.4"/>
+        </svg>
+        Tap to open camera
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startScanner()">Start Camera</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Subject</p>
+    <select id="subject">
+      <option value="">Select subject…</option>
+      <option value="NIS_TH">NIS — Theory</option>
+      <option value="NIS_PR">NIS — Practical</option>
+      <option value="SFT_TH">SFT — Theory</option>
+      <option value="SFT_PR">SFT — Practical</option>
+      <option value="MAN">MAN</option>
+      <option value="ETI">ETI</option>
+      <option value="CSS_TH">CSS — Theory</option>
+      <option value="CSS_PR">CSS — Practical</option>
+      <option value="MAD_TH">MAD — Theory</option>
+      <option value="MAD_PR">MAD — Practical</option>
+    </select>
+  </div>
+
+</div>
+
+<!-- Install banner -->
+<div id="install-banner">
+  <div class="install-card">
+    <div class="install-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0f0ee" stroke-width="1.4">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <rect x="15" y="15" width="2" height="2"/><rect x="19" y="15" width="2" height="2"/>
+        <rect x="15" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/>
+      </svg>
+    </div>
+    <div class="install-text">
+      <div class="install-title">Add to Home Screen</div>
+      <div class="install-sub">Quick access, no browser</div>
+    </div>
+    <div class="install-actions">
+      <button class="install-btn install-btn-ghost" onclick="dismissInstall()">Later</button>
+      <button class="install-btn install-btn-primary" id="installBtn" onclick="triggerInstall()">Install</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = "https://attendance-version-1.vercel.app/";
+  const TOKEN_PREFIX = "COLLEGE_QR_";
+  const TOKEN_INTERVAL = 30;
+
+  function expectedToken() {
+    return TOKEN_PREFIX + Math.floor(Date.now() / 1000 / TOKEN_INTERVAL);
+  }
+
+  let html5QrCode, scanning = false;
+  let deferredPrompt = null;
+
+  // ── PWA Install ──
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const dismissed = localStorage.getItem('installDismissed');
+    if (!dismissed) {
+      setTimeout(() => {
+        document.getElementById('install-banner').classList.add('visible');
+      }, 1800);
+    }
+  });
+
+  function dismissInstall() {
+    document.getElementById('install-banner').classList.remove('visible');
+    localStorage.setItem('installDismissed', '1');
+  }
+
+  async function triggerInstall() {
+    if (!deferredPrompt) {
+      // iOS fallback — show tip
+      document.getElementById('install-banner').querySelector('.install-sub').innerText =
+        'Tap Share → "Add to Home Screen"';
+      document.getElementById('installBtn').style.display = 'none';
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    dismissInstall();
+  }
+
+  window.addEventListener('appinstalled', dismissInstall);
+
+  // iOS: show banner after short delay if not in standalone mode
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  if (isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
+    setTimeout(() => {
+      document.getElementById('installBtn').style.display = 'none';
+      document.getElementById('install-banner').querySelector('.install-sub').innerText =
+        'Share → Add to Home Screen';
+      document.getElementById('install-banner').classList.add('visible');
+    }, 1800);
+  }
+
+  // ── Student ──
+  function loadStudent() {
+    const roll = localStorage.getItem("roll");
+    const name = localStorage.getItem("name");
+    const info = document.getElementById("studentInfo");
+    if (roll && name) {
+      info.style.display = "block";
+      info.innerText = `${roll}  ·  ${name}`;
+      document.getElementById("studentBox").style.display = "none";
+    } else {
+      info.style.display = "none";
+      document.getElementById("studentBox").style.display = "block";
+    }
+  }
+
+  function saveStudent() {
+    const roll = document.getElementById("roll").value.trim();
+    const name = document.getElementById("name").value.trim();
+    if (!roll || !name) { alert("Please enter both roll number and name."); return; }
+    localStorage.setItem("roll", roll);
+    localStorage.setItem("name", name);
+    loadStudent();
+  }
+
+  // ── Status ──
+  function setStatus(msg, type) {
+    document.getElementById("status").innerHTML =
+      `<div class="msg msg-${type}">${msg}</div>`;
+    const dot = document.getElementById("statusDot");
+    dot.style.background = type === 'ok' ? '#4ade80' : type === 'err' ? '#f87171' : '#2a2a2a';
+  }
+
+  // ── Scanner ──
+  function startScanner() {
+    const roll = localStorage.getItem("roll");
+    const name = localStorage.getItem("name");
+    if (!roll || !name) { alert("Save your details first."); return; }
+    if (scanning) return;
+
+    document.getElementById("reader").innerHTML = "";
+    setStatus("Opening camera…", "ok");
+
+    html5QrCode = new Html5Qrcode("reader");
+    scanning = true;
+
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      onScanSuccess
+    ).catch(() => {
+      scanning = false;
+      setStatus("Camera permission denied or unavailable.", "err");
+    });
+  }
+
+  function onScanSuccess(text) {
+    if (text === expectedToken()) {
+      setStatus("QR verified — marking attendance…", "ok");
+      html5QrCode.stop().then(() => { scanning = false; markAttendance(); });
+    } else {
+      setStatus("Invalid or expired QR code.", "err");
+    }
+  }
+
+  async function markAttendance() {
+    const roll = localStorage.getItem("roll");
+    const name = localStorage.getItem("name");
+    const subject = document.getElementById("subject").value;
+    if (!subject) { setStatus("Please select a subject first.", "err"); return; }
+
+    try {
+      const res = await fetch(API_BASE + "/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roll, name, subject })
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error, "err"); return; }
+      setStatus("Attendance recorded successfully.", "ok");
+    } catch {
+      setStatus("Server unreachable. Try again.", "err");
+    }
+  }
+
+  loadStudent();
+</script>
+</body>
+</html>
