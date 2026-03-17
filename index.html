@@ -9,6 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="QR Attend" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <script src="https://unpkg.com/html5-qrcode"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
 
@@ -21,7 +23,6 @@
       --ink: #f0f0ee;
       --ink-muted: #6b6b6b;
       --ink-faint: #333333;
-      --accent: #e8e8e6;
       --ok: #4ade80;
       --ok-bg: #0d1f14;
       --ok-border: #1a3d26;
@@ -55,7 +56,6 @@
       align-items: center;
       justify-content: space-between;
     }
-    .header-left {}
     .header-label {
       font-family: 'DM Mono', monospace;
       font-size: 10px;
@@ -74,7 +74,8 @@
       width: 7px; height: 7px;
       border-radius: 50%;
       background: #2a2a2a;
-      margin-top: 4px;
+      flex-shrink: 0;
+      transition: background 0.4s;
     }
 
     /* ── Student pill ── */
@@ -129,7 +130,6 @@
     input + input { margin-top: 8px; }
     input::placeholder { color: #3d3d3d; }
     input:focus { border-color: #444; background: #141414; }
-
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6b6b' d='M6 8L1.5 3.5h9z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
@@ -156,21 +156,24 @@
       touch-action: manipulation;
     }
     .btn:active { opacity: 0.65; transform: scale(0.985); }
-
-    .btn-primary {
-      background: var(--ink);
-      color: #0d0d0d;
-      margin-top: 14px;
-    }
+    .btn-primary { background: var(--ink); color: #0d0d0d; margin-top: 14px; }
     .btn-primary:hover { background: #d8d8d6; }
-
     .btn-outline {
       background: transparent;
       color: var(--ink-muted);
       border: var(--border);
-      margin-top: 8px;
+      margin-top: 0;
     }
     .btn-outline:hover { background: var(--surface-hover); color: var(--ink); }
+
+    /* ── Camera controls row ── */
+    .camera-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .camera-controls .btn-primary { margin-top: 0; flex: 1; }
+    .camera-controls .btn-outline { flex: 0 0 auto; width: auto; padding: 12px 18px; }
 
     /* ── Scanner area ── */
     #reader {
@@ -190,10 +193,7 @@
       line-height: 1.8;
       padding: 24px;
     }
-    #reader-placeholder svg {
-      display: block;
-      margin: 0 auto 12px;
-    }
+    #reader-placeholder svg { display: block; margin: 0 auto 12px; }
 
     /* ── Status ── */
     #status { margin-top: 10px; }
@@ -201,83 +201,100 @@
       padding: 12px 15px;
       border-radius: 8px;
       font-size: 13.5px;
-      font-weight: 400;
       line-height: 1.5;
     }
     .msg-ok  { color: var(--ok);  background: var(--ok-bg);  border: 1px solid var(--ok-border); }
     .msg-err { color: var(--err); background: var(--err-bg); border: 1px solid var(--err-border); }
 
-    /* ── Install banner ── */
-    #install-banner {
+    /* ── Install modal ── */
+    #install-overlay {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
-      padding: 0 16px 24px;
-      z-index: 100;
-      pointer-events: none;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 16px 32px;
       opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
     }
-    #install-banner.visible {
+    #install-overlay.visible {
       opacity: 1;
-      transform: translateY(0);
       pointer-events: all;
     }
-    .install-card {
-      background: #1a1a1a;
-      border: 1px solid #2e2e2e;
-      border-radius: 14px;
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
+    .install-modal {
+      width: 100%;
       max-width: 420px;
-      margin: 0 auto;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      background: #181818;
+      border: 1px solid #262626;
+      border-radius: 20px;
+      padding: 28px 24px 22px;
+      transform: translateY(28px);
+      transition: transform 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.75);
     }
-    .install-icon {
-      width: 40px; height: 40px;
+    #install-overlay.visible .install-modal {
+      transform: translateY(0);
+    }
+    .install-modal-icon {
+      width: 50px; height: 50px;
       background: #111;
-      border: 1px solid #2a2a2a;
-      border-radius: 10px;
+      border: 1px solid #272727;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
+      margin-bottom: 20px;
     }
-    .install-icon svg { opacity: 0.7; }
-    .install-text { flex: 1; min-width: 0; }
-    .install-title {
-      font-size: 13.5px;
+    .install-modal-title {
+      font-size: 17px;
       font-weight: 500;
       color: var(--ink);
-      margin-bottom: 2px;
+      letter-spacing: -0.025em;
+      margin-bottom: 8px;
     }
-    .install-sub {
-      font-size: 12px;
+    .install-modal-body {
+      font-size: 13.5px;
       color: var(--ink-muted);
-      font-family: 'DM Mono', monospace;
+      line-height: 1.7;
+      margin-bottom: 26px;
     }
-    .install-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-    .install-btn {
-      font-size: 13px;
+    .install-modal-body code {
+      font-family: 'DM Mono', monospace;
+      font-size: 11.5px;
+      color: #505050;
+      background: #111;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #242424;
+    }
+    .install-modal-actions { display: flex; flex-direction: column; gap: 6px; }
+    .im-btn {
+      width: 100%;
+      padding: 13px;
+      font-size: 14px;
       font-family: 'DM Sans', sans-serif;
       font-weight: 500;
-      padding: 7px 14px;
-      border-radius: 7px;
+      border-radius: 11px;
       cursor: pointer;
       border: none;
       touch-action: manipulation;
       -webkit-appearance: none;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.005em;
     }
-    .install-btn:active { opacity: 0.6; }
-    .install-btn-primary { background: var(--ink); color: #0d0d0d; }
-    .install-btn-ghost {
+    .im-btn:active { opacity: 0.6; transform: scale(0.984); }
+    .im-btn-primary { background: var(--ink); color: #0d0d0d; }
+    .im-btn-primary:hover { background: #d8d8d6; }
+    .im-btn-ghost {
       background: transparent;
       color: var(--ink-muted);
-      font-size: 12px;
-      padding: 7px 4px;
+      font-size: 13px;
+      font-weight: 400;
     }
 
     @media (max-width: 360px) {
@@ -286,7 +303,7 @@
     }
     @supports (-webkit-touch-callout: none) {
       input, select, .btn { font-size: 16px; }
-      #install-banner { padding-bottom: env(safe-area-inset-bottom, 24px); }
+      #install-overlay { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
     }
   </style>
 </head>
@@ -295,7 +312,7 @@
 <div class="shell">
 
   <div class="header">
-    <div class="header-left">
+    <div>
       <p class="header-label">Attendance System</p>
       <h1>QR Scanner</h1>
     </div>
@@ -304,6 +321,7 @@
 
   <div id="studentInfo"></div>
 
+  <!-- Student details -->
   <div class="section" id="studentBox" style="display:none;">
     <p class="section-label">Your Details</p>
     <input type="text" id="roll" placeholder="Roll Number" />
@@ -311,6 +329,7 @@
     <button class="btn btn-primary" onclick="saveStudent()">Save</button>
   </div>
 
+  <!-- Scanner -->
   <div class="section">
     <p class="section-label">Camera</p>
     <div id="reader">
@@ -327,10 +346,18 @@
         Tap to open camera
       </div>
     </div>
-    <button class="btn btn-primary" onclick="startScanner()">Start Camera</button>
+
+    <div class="camera-controls">
+      <button class="btn btn-primary" id="startBtn" onclick="startScanner()">Start Camera</button>
+      <button class="btn btn-outline" id="stopBtn" onclick="stopScanner()" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-2px;margin-right:5px;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        Stop
+      </button>
+    </div>
     <div id="status"></div>
   </div>
 
+  <!-- Subject -->
   <div class="section">
     <p class="section-label">Subject</p>
     <select id="subject">
@@ -350,25 +377,27 @@
 
 </div>
 
-<!-- Install banner -->
-<div id="install-banner">
-  <div class="install-card">
-    <div class="install-icon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0f0ee" stroke-width="1.4">
-        <rect x="3" y="3" width="7" height="7" rx="1"/>
-        <rect x="14" y="3" width="7" height="7" rx="1"/>
-        <rect x="3" y="14" width="7" height="7" rx="1"/>
-        <rect x="15" y="15" width="2" height="2"/><rect x="19" y="15" width="2" height="2"/>
-        <rect x="15" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/>
+<!-- Install modal -->
+<div id="install-overlay" onclick="handleOverlayClick(event)">
+  <div class="install-modal">
+    <div class="install-modal-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c0c0be" stroke-width="1.4">
+        <rect x="3" y="3" width="7" height="7" rx="1.1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.1"/>
+        <rect x="14.5" y="14.5" width="2" height="2" rx="0.3"/>
+        <rect x="18.5" y="14.5" width="2" height="2" rx="0.3"/>
+        <rect x="14.5" y="18.5" width="2" height="2" rx="0.3"/>
+        <rect x="18.5" y="18.5" width="2" height="2" rx="0.3"/>
       </svg>
     </div>
-    <div class="install-text">
-      <div class="install-title">Add to Home Screen</div>
-      <div class="install-sub">Quick access, no browser</div>
+    <div class="install-modal-title">Add to Home Screen</div>
+    <div class="install-modal-body" id="install-modal-body">
+      Install QR Attendance for instant one-tap access — no browser bar, no extra steps.
     </div>
-    <div class="install-actions">
-      <button class="install-btn install-btn-ghost" onclick="dismissInstall()">Later</button>
-      <button class="install-btn install-btn-primary" id="installBtn" onclick="triggerInstall()">Install</button>
+    <div class="install-modal-actions">
+      <button class="im-btn im-btn-primary" id="installBtn" onclick="triggerInstall()">Install</button>
+      <button class="im-btn im-btn-ghost" onclick="dismissInstall()">Not now</button>
     </div>
   </div>
 </div>
@@ -385,51 +414,44 @@
   let html5QrCode, scanning = false;
   let deferredPrompt = null;
 
-  // ── PWA Install ──
+  // ── PWA install ──
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    const dismissed = localStorage.getItem('installDismissed');
-    if (!dismissed) {
-      setTimeout(() => {
-        document.getElementById('install-banner').classList.add('visible');
-      }, 1800);
+    if (!localStorage.getItem('installDismissed')) {
+      setTimeout(showInstall, 2000);
     }
   });
 
+  function showInstall() {
+    document.getElementById('install-overlay').classList.add('visible');
+  }
   function dismissInstall() {
-    document.getElementById('install-banner').classList.remove('visible');
+    document.getElementById('install-overlay').classList.remove('visible');
     localStorage.setItem('installDismissed', '1');
   }
-
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('install-overlay')) dismissInstall();
+  }
   async function triggerInstall() {
-    if (!deferredPrompt) {
-      // iOS fallback — show tip
-      document.getElementById('install-banner').querySelector('.install-sub').innerText =
-        'Tap Share → "Add to Home Screen"';
-      document.getElementById('installBtn').style.display = 'none';
-      return;
-    }
+    if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     deferredPrompt = null;
     dismissInstall();
   }
-
   window.addEventListener('appinstalled', dismissInstall);
 
-  // iOS: show banner after short delay if not in standalone mode
+  // iOS
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true;
-
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   if (isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
     setTimeout(() => {
+      document.getElementById('install-modal-body').innerHTML =
+        'Tap the <code>Share</code> icon in Safari, then select <code>Add to Home Screen</code>.';
       document.getElementById('installBtn').style.display = 'none';
-      document.getElementById('install-banner').querySelector('.install-sub').innerText =
-        'Share → Add to Home Screen';
-      document.getElementById('install-banner').classList.add('visible');
-    }, 1800);
+      showInstall();
+    }, 2000);
   }
 
   // ── Student ──
@@ -446,7 +468,6 @@
       document.getElementById("studentBox").style.display = "block";
     }
   }
-
   function saveStudent() {
     const roll = document.getElementById("roll").value.trim();
     const name = document.getElementById("name").value.trim();
@@ -458,10 +479,13 @@
 
   // ── Status ──
   function setStatus(msg, type) {
-    document.getElementById("status").innerHTML =
-      `<div class="msg msg-${type}">${msg}</div>`;
-    const dot = document.getElementById("statusDot");
-    dot.style.background = type === 'ok' ? '#4ade80' : type === 'err' ? '#f87171' : '#2a2a2a';
+    document.getElementById("status").innerHTML = `<div class="msg msg-${type}">${msg}</div>`;
+    document.getElementById("statusDot").style.background =
+      type === 'ok' ? '#4ade80' : type === 'err' ? '#f87171' : '#2a2a2a';
+  }
+  function clearStatus() {
+    document.getElementById("status").innerHTML = '';
+    document.getElementById("statusDot").style.background = '#2a2a2a';
   }
 
   // ── Scanner ──
@@ -472,7 +496,9 @@
     if (scanning) return;
 
     document.getElementById("reader").innerHTML = "";
-    setStatus("Opening camera…", "ok");
+    clearStatus();
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("stopBtn").style.display = "block";
 
     html5QrCode = new Html5Qrcode("reader");
     scanning = true;
@@ -483,14 +509,46 @@
       onScanSuccess
     ).catch(() => {
       scanning = false;
+      resetCameraUI();
       setStatus("Camera permission denied or unavailable.", "err");
     });
+  }
+
+  function stopScanner() {
+    if (!scanning) return;
+    html5QrCode.stop().then(() => {
+      scanning = false;
+      resetCameraUI();
+      clearStatus();
+    }).catch(() => { scanning = false; resetCameraUI(); });
+  }
+
+  function resetCameraUI() {
+    document.getElementById("startBtn").style.display = "block";
+    document.getElementById("stopBtn").style.display = "none";
+    document.getElementById("reader").innerHTML = `
+      <div id="reader-placeholder">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="3" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="14" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="18.5" y="14" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="14" y="18.5" width="2.5" height="2.5" rx="0.4"/>
+          <rect x="18.5" y="18.5" width="2.5" height="2.5" rx="0.4"/>
+        </svg>
+        Tap to open camera
+      </div>`;
   }
 
   function onScanSuccess(text) {
     if (text === expectedToken()) {
       setStatus("QR verified — marking attendance…", "ok");
-      html5QrCode.stop().then(() => { scanning = false; markAttendance(); });
+      html5QrCode.stop().then(() => {
+        scanning = false;
+        resetCameraUI();
+        markAttendance();
+      });
     } else {
       setStatus("Invalid or expired QR code.", "err");
     }
@@ -517,6 +575,10 @@
   }
 
   loadStudent();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>
