@@ -2,7 +2,7 @@
   "name": "QR Attendance Scanner",
   "short_name": "QR Attend",
   "description": "Scan QR codes to mark your college attendance",
-  "start_url": "./qr-attendance.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0d0d",
