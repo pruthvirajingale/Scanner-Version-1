@@ -554,25 +554,35 @@ const API_BASE = "https://attendance-version-1.vercel.app";
     }
   }
 
-  async function markAttendance() {
-    const roll = localStorage.getItem("roll");
-    const name = localStorage.getItem("name");
-    const subject = document.getElementById("subject").value;
-    if (!subject) { setStatus("Please select a subject first.", "err"); return; }
+ async function markAttendance() {
+  const roll = localStorage.getItem("roll");
+  const name = localStorage.getItem("name");
+  const subjectId = document.getElementById("subject").value;
+  if (!subjectId) { setStatus("Please select a subject first.", "err"); return; }
 
-    try {
-      const res = await fetch(API_BASE + "/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roll, name, subject })
-      });
-      const data = await res.json();
-      if (!res.ok) { setStatus(data.error, "err"); return; }
-      setStatus("Attendance recorded successfully.", "ok");
-    } catch {
-      setStatus("Server unreachable. Try again.", "err");
-    }
+  try {
+    const res = await fetch(API_BASE + "/attendance", {
+      method: "PATCH",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_TOKEN_HERE"  // needs a valid JWT
+      },
+      body: JSON.stringify({
+        studentRoll: roll,
+        studentName: name,
+        subjectId: subjectId,
+        date: new Date().toISOString().split("T")[0],
+        present: true
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) { setStatus(data.error || "Failed.", "err"); return; }
+    setStatus("Attendance recorded successfully.", "ok");
+  } catch {
+    setStatus("Server unreachable. Try again.", "err");
   }
+}
+  
 
   loadStudent();
 
