@@ -91,6 +91,7 @@
       margin-bottom: 16px;
       width: fit-content;
       letter-spacing: 0.03em;
+      cursor: pointer;
     }
 
     /* ── Sections ── */
@@ -319,7 +320,8 @@
     <div class="header-dot" id="statusDot"></div>
   </div>
 
-  <div id="studentInfo"></div>
+  <!-- Shows saved student info — tap to edit -->
+  <div id="studentInfo" onclick="editStudent()"></div>
 
   <!-- Student details -->
   <div class="section" id="studentBox" style="display:none;">
@@ -327,6 +329,14 @@
     <input type="text" id="roll" placeholder="Roll Number" />
     <input type="text" id="name" placeholder="Full Name" />
     <button class="btn btn-primary" onclick="saveStudent()">Save</button>
+  </div>
+
+  <!-- Subject — selected BEFORE scanning -->
+  <div class="section">
+    <p class="section-label">Subject</p>
+    <select id="subject">
+      <option value="">Loading subjects…</option>
+    </select>
   </div>
 
   <!-- Scanner -->
@@ -343,7 +353,7 @@
           <rect x="14" y="18.5" width="2.5" height="2.5" rx="0.4"/>
           <rect x="18.5" y="18.5" width="2.5" height="2.5" rx="0.4"/>
         </svg>
-        Tap to open camera
+        Select a subject above, then tap Start Camera
       </div>
     </div>
 
@@ -355,24 +365,6 @@
       </button>
     </div>
     <div id="status"></div>
-  </div>
-
-  <!-- Subject -->
-  <div class="section">
-    <p class="section-label">Subject</p>
-    <select id="subject">
-      <option value="">Select subject…</option>
-      <option value="NIS_TH">NIS — Theory</option>
-      <option value="NIS_PR">NIS — Practical</option>
-      <option value="SFT_TH">SFT — Theory</option>
-      <option value="SFT_PR">SFT — Practical</option>
-      <option value="MAN">MAN</option>
-      <option value="ETI">ETI</option>
-      <option value="CSS_TH">CSS — Theory</option>
-      <option value="CSS_PR">CSS — Practical</option>
-      <option value="MAD_TH">MAD — Theory</option>
-      <option value="MAD_PR">MAD — Practical</option>
-    </select>
   </div>
 
 </div>
@@ -403,10 +395,21 @@
 </div>
 
 <script>
-const API_BASE = "https://attendance-version-1.vercel.app";
-  const TOKEN_PREFIX = "COLLEGE_QR_";
-  const TOKEN_INTERVAL = 30;
+  // ── Constants ──
+  const API_BASE       = "https://attendance-version-1.vercel.app";
+  const TOKEN_PREFIX   = "COLLEGE_QR_";
+  const TOKEN_INTERVAL = 30; // seconds
 
+  // ── Clear any bad cached subjectId that isn't a 24-char MongoDB ObjectId ──
+  (function clearBadCache() {
+    const cached = localStorage.getItem("selectedSubject");
+    if (cached && !/^[a-f\d]{24}$/i.test(cached)) {
+      console.warn("Cleared invalid cached subjectId:", cached);
+      localStorage.removeItem("selectedSubject");
+    }
+  })();
+
+  // ── Token ──
   function expectedToken() {
     return TOKEN_PREFIX + Math.floor(Date.now() / 1000 / TOKEN_INTERVAL);
   }
@@ -414,7 +417,7 @@ const API_BASE = "https://attendance-version-1.vercel.app";
   let html5QrCode, scanning = false;
   let deferredPrompt = null;
 
-  // ── PWA install ──
+  // ── PWA Install ──
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -442,8 +445,8 @@ const API_BASE = "https://attendance-version-1.vercel.app";
   }
   window.addEventListener('appinstalled', dismissInstall);
 
-  // iOS
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  // iOS install prompt
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   if (isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
     setTimeout(() => {
@@ -461,13 +464,20 @@ const API_BASE = "https://attendance-version-1.vercel.app";
     const info = document.getElementById("studentInfo");
     if (roll && name) {
       info.style.display = "block";
-      info.innerText = `${roll}  ·  ${name}`;
+      info.innerText = `${roll}  ·  ${name}  · tap to edit`;
       document.getElementById("studentBox").style.display = "none";
     } else {
       info.style.display = "none";
       document.getElementById("studentBox").style.display = "block";
     }
   }
+
+  function editStudent() {
+    localStorage.removeItem("roll");
+    localStorage.removeItem("name");
+    loadStudent();
+  }
+
   function saveStudent() {
     const roll = document.getElementById("roll").value.trim();
     const name = document.getElementById("name").value.trim();
@@ -476,6 +486,43 @@ const API_BASE = "https://attendance-version-1.vercel.app";
     localStorage.setItem("name", name);
     loadStudent();
   }
+
+  // ── Subjects ──
+  async function loadSubjects() {
+    const select = document.getElementById("subject");
+    const savedSubject = localStorage.getItem("selectedSubject");
+    try {
+      const res = await fetch(API_BASE + "/subjects/public");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const subjects = await res.json();
+      if (!subjects.length) {
+        select.innerHTML = '<option value="">No subjects found</option>';
+        return;
+      }
+      select.innerHTML = '<option value="">Select subject…</option>';
+      subjects.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s._id; // always the MongoDB ObjectId
+        opt.textContent = `${s.code} — ${s.name} (${s.divisionName} Y${s.year}S${s.semester} ${s.type})`;
+        if (savedSubject === s._id) opt.selected = true;
+        select.appendChild(opt);
+      });
+    } catch (e) {
+      select.innerHTML = '<option value="">Failed to load — refresh to retry</option>';
+      console.error("loadSubjects error:", e);
+    }
+  }
+
+  // Persist selected subject across sessions
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("subject").addEventListener("change", (e) => {
+      if (e.target.value) {
+        localStorage.setItem("selectedSubject", e.target.value);
+      } else {
+        localStorage.removeItem("selectedSubject");
+      }
+    });
+  });
 
   // ── Status ──
   function setStatus(msg, type) {
@@ -492,7 +539,15 @@ const API_BASE = "https://attendance-version-1.vercel.app";
   function startScanner() {
     const roll = localStorage.getItem("roll");
     const name = localStorage.getItem("name");
-    if (!roll || !name) { alert("Save your details first."); return; }
+    if (!roll || !name) {
+      alert("Save your details first.");
+      return;
+    }
+    const subjectId = document.getElementById("subject").value;
+    if (!subjectId) {
+      alert("Please select a subject first.");
+      return;
+    }
     if (scanning) return;
 
     document.getElementById("reader").innerHTML = "";
@@ -507,7 +562,8 @@ const API_BASE = "https://attendance-version-1.vercel.app";
       { facingMode: "environment" },
       { fps: 10, qrbox: 220 },
       onScanSuccess
-    ).catch(() => {
+    ).catch((err) => {
+      console.error("Camera error:", err);
       scanning = false;
       resetCameraUI();
       setStatus("Camera permission denied or unavailable.", "err");
@@ -520,7 +576,10 @@ const API_BASE = "https://attendance-version-1.vercel.app";
       scanning = false;
       resetCameraUI();
       clearStatus();
-    }).catch(() => { scanning = false; resetCameraUI(); });
+    }).catch(() => {
+      scanning = false;
+      resetCameraUI();
+    });
   }
 
   function resetCameraUI() {
@@ -537,12 +596,15 @@ const API_BASE = "https://attendance-version-1.vercel.app";
           <rect x="14" y="18.5" width="2.5" height="2.5" rx="0.4"/>
           <rect x="18.5" y="18.5" width="2.5" height="2.5" rx="0.4"/>
         </svg>
-        Tap to open camera
+        Select a subject above, then tap Start Camera
       </div>`;
   }
 
   function onScanSuccess(text) {
-    if (text === expectedToken()) {
+    const token = expectedToken();
+    console.log("Scanned:", text, "| Expected:", token);
+
+    if (text === token) {
       setStatus("QR verified — marking attendance…", "ok");
       html5QrCode.stop().then(() => {
         scanning = false;
@@ -550,39 +612,63 @@ const API_BASE = "https://attendance-version-1.vercel.app";
         markAttendance();
       });
     } else {
-      setStatus("Invalid or expired QR code.", "err");
+      setStatus("Invalid or expired QR code. Please try again.", "err");
     }
   }
 
-async function markAttendance() {
-  const roll = localStorage.getItem("roll");
-  const name = localStorage.getItem("name");
-  const subjectId = document.getElementById("subject").value;
-  
-  setStatus("Attempting: " + API_BASE + "/attendance/checkin", "ok");
-  
-  try {
-    const res = await fetch(API_BASE + "/attendance/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        studentRoll: roll,
-        studentName: name,
-        subjectId: subjectId,
-        date: new Date().toISOString().split("T")[0],
-        present: true
-      })
-    });
-    
-    const text = await res.text();  // raw response
-    setStatus("Status: " + res.status + " | Body: " + text, res.ok ? "ok" : "err");
-    
-  } catch (err) {
-    setStatus("CATCH: " + err.name + " — " + err.message, "err");
-  }
-}  
+  async function markAttendance() {
+    const roll      = localStorage.getItem("roll");
+    const name      = localStorage.getItem("name");
+    const subjectId = document.getElementById("subject").value;
 
+    if (!subjectId) {
+      setStatus("No subject selected. Please select a subject and try again.", "err");
+      return;
+    }
+
+    // Validate subjectId is a proper MongoDB ObjectId before sending
+    if (!/^[a-f\d]{24}$/i.test(subjectId)) {
+      setStatus("Invalid subject selected. Please re-select your subject.", "err");
+      localStorage.removeItem("selectedSubject");
+      await loadSubjects();
+      return;
+    }
+
+    const payload = {
+      studentRoll: roll,
+      studentName: name,
+      subjectId:   subjectId,
+      date:        new Date().toISOString().split("T")[0]
+    };
+
+    console.log("Posting to checkin:", payload);
+
+    try {
+      const res  = await fetch(API_BASE + "/attendance/checkin", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      console.log("Response:", res.status, data);
+
+      if (!res.ok) {
+        setStatus("Error " + res.status + ": " + (data.error || "Failed to record attendance."), "err");
+        return;
+      }
+
+      setStatus("✓ Attendance recorded successfully.", "ok");
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setStatus("Server unreachable. Check your connection and try again.", "err");
+    }
+  }
+
+  // ── Init ──
   loadStudent();
+  loadSubjects();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
