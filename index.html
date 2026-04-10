@@ -571,15 +571,17 @@ async function onScanSuccess(decodedText) {
     return;
   }
 
-  const roll = localStorage.getItem('roll');
+const roll = localStorage.getItem('roll');
 
-  // ✅ LOCAL DUPLICATE CHECK
-  const key = `${roll}_${subjectId}_${lectureType}_${date}`;
-  if (localStorage.getItem(key)) {
-    showStatus('Attendance already marked for this session.', 'err');
-    return;
-  }
+// FIXED duplicate check (normalized + consistent key)
+date = new Date(date).toISOString().split('T')[0];
 
+const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
+
+if (localStorage.getItem(key) === "1") {
+  showStatus('⚠️ Attendance already marked for this session.', 'err');
+  return;
+}
   // Stop scanner before API call
   html5QrCode.stop().then(() => {
     scanning = false;
@@ -622,17 +624,21 @@ async function markAttendance(subjectId, lectureType, date) {
 
     const data = await res.json();
 
-    if (!res.ok) {
-      showStatus((data.error || 'Failed to record attendance.'), 'err');
-      return false;
-    }
+if (!res.ok) {
+  showStatus((data.error || 'Failed to record attendance.'), 'err');
+  return false;
+}
 
-    triggerSuccessFlash();
+// ✅ SAVE DUPLICATE KEY HERE (IMPORTANT)
+const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
+localStorage.setItem(key, "1");
 
-    const ltLabel = data.lectureType === 'PR' ? 'Practical' : 'Theory';
-    showStatus(`Attendance recorded — ${ltLabel} · ${date}`, 'ok');
+triggerSuccessFlash();
 
-    return true;
+const ltLabel = data.lectureType === 'PR' ? 'Practical' : 'Theory';
+showStatus(`Attendance recorded — ${ltLabel} · ${date}`, 'ok');
+
+return true;
 
   } catch {
     showStatus('Could not reach server. Check your connection.', 'err');
