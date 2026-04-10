@@ -131,9 +131,9 @@ input, select {
 }
 input + input { margin-top: 8px; }
 input::placeholder { color: #9ca3af; }
-input:focus { 
-  border-color: #3b82f6; 
-  background: #fafbff; 
+input:focus {
+  border-color: #3b82f6;
+  background: #fafbff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -152,9 +152,9 @@ input:focus {
   touch-action: manipulation;
 }
 .btn:active { opacity: 0.85; transform: scale(0.985); }
-.btn-primary { 
-  background: #1f2937; 
-  color: #ffffff; 
+.btn-primary {
+  background: #1f2937;
+  color: #ffffff;
   margin-top: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -165,8 +165,8 @@ input:focus {
   border: var(--border);
   margin-top: 0;
 }
-.btn-outline:hover { 
-  background: var(--surface-hover); 
+.btn-outline:hover {
+  background: var(--surface-hover);
   color: var(--ink);
   border-color: #d1d5db;
 }
@@ -240,15 +240,15 @@ input:focus {
   font-size: 13.5px;
   line-height: 1.5;
 }
-.msg-ok  { 
-  color: #065f46; 
-  background: var(--ok-bg);  
-  border: 1px solid var(--ok-border); 
+.msg-ok  {
+  color: #065f46;
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-border);
 }
-.msg-err { 
-  color: #991b1b; 
-  background: var(--err-bg); 
-  border: 1px solid var(--err-border); 
+.msg-err {
+  color: #991b1b;
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
 }
 .msg-loading {
   color: var(--ink-muted);
@@ -351,9 +351,9 @@ input:focus {
   letter-spacing: 0.005em;
 }
 .im-btn:active { opacity: 0.85; transform: scale(0.984); }
-.im-btn-primary { 
-  background: #1f2937; 
-  color: #ffffff; 
+.im-btn-primary {
+  background: #1f2937;
+  color: #ffffff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 .im-btn-primary:hover { background: #374151; }
@@ -497,12 +497,14 @@ let cooldown = false;
 function startScanner() {
   const roll = localStorage.getItem('roll');
   const name = localStorage.getItem('name');
+
   if (!roll || !name) {
     showStatus('Save your details first before scanning.', 'err');
     document.getElementById('studentCard').style.display = 'block';
     document.getElementById('rollInput').focus();
     return;
   }
+
   if (scanning) return;
 
   clearStatus();
@@ -528,32 +530,34 @@ function startScanner() {
 
 function stopScanner() {
   if (!scanning || !html5QrCode) return;
-  html5QrCode.stop().then(() => {
-    scanning = false; html5QrCode = null;
-    resetCameraUI(); clearStatus();
-  }).catch(() => {
-    scanning = false; html5QrCode = null; resetCameraUI();
-  });
-}
 
-function resetCameraUI() {
-  document.getElementById('reader-placeholder').style.display = 'block';
-  document.getElementById('scanOverlay').classList.remove('active');
-  document.getElementById('startBtn').style.display = 'block';
-  document.getElementById('stopBtn').style.display = 'none';
-  document.getElementById('headerDot').classList.remove('active');
+  html5QrCode.stop().then(() => {
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+    clearStatus();
+  }).catch(() => {
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+  });
 }
 
 async function onScanSuccess(decodedText) {
   if (cooldown || decodedText === lastScanned) return;
-  cooldown = true; lastScanned = decodedText;
+
+  cooldown = true;
+  lastScanned = decodedText;
+
   setTimeout(() => { cooldown = false; }, 3000);
 
   let subjectId, lectureType, date;
+
   try {
     let url = decodedText.startsWith('http')
       ? new URL(decodedText)
       : new URL('https://x.x?' + decodedText);
+
     subjectId   = url.searchParams.get('subjectId');
     lectureType = url.searchParams.get('lectureType') || 'TH';
     date        = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
@@ -563,39 +567,78 @@ async function onScanSuccess(decodedText) {
   }
 
   if (!subjectId) {
-    showStatus('QR code is missing subject information. Ask your teacher to regenerate.', 'err');
+    showStatus('QR code is missing subject information.', 'err');
     return;
   }
 
+  const roll = localStorage.getItem('roll');
+
+  // ✅ LOCAL DUPLICATE CHECK
+  const key = `${roll}_${subjectId}_${lectureType}_${date}`;
+  if (localStorage.getItem(key)) {
+    showStatus('Attendance already marked for this session.', 'err');
+    return;
+  }
+
+  // Stop scanner before API call
   html5QrCode.stop().then(() => {
-    scanning = false; html5QrCode = null; resetCameraUI();
-  }).catch(() => { scanning = false; html5QrCode = null; resetCameraUI(); });
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+  }).catch(() => {
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+  });
 
   showScanMeta(subjectId, lectureType, date);
-  await markAttendance(subjectId, lectureType, date);
+
+  const success = await markAttendance(subjectId, lectureType, date);
+
+  // ✅ SAVE ONLY IF SUCCESS
+  if (success) {
+    localStorage.setItem(key, "1");
+  }
 }
 
 async function markAttendance(subjectId, lectureType, date) {
   const roll = localStorage.getItem('roll');
   const name = localStorage.getItem('name');
+
   showStatus('Marking attendance…', 'loading');
 
   try {
     const res = await fetch(API_BASE + '/attendance/checkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentRoll: roll, studentName: name, subjectId, lectureType, date })
+      body: JSON.stringify({
+        studentRoll: roll,
+        studentName: name,
+        subjectId,
+        lectureType,
+        date
+      })
     });
+
     const data = await res.json();
-    if (!res.ok) { showStatus((data.error || 'Failed to record attendance.'), 'err'); return; }
+
+    if (!res.ok) {
+      showStatus((data.error || 'Failed to record attendance.'), 'err');
+      return false;
+    }
+
     triggerSuccessFlash();
+
     const ltLabel = data.lectureType === 'PR' ? 'Practical' : 'Theory';
     showStatus(`Attendance recorded — ${ltLabel} · ${date}`, 'ok');
+
+    return true;
+
   } catch {
     showStatus('Could not reach server. Check your connection.', 'err');
+    return false;
   }
 }
-
 // ── UI helpers ──
 function showStatus(msg, type) {
   const el = document.getElementById('status');
