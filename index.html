@@ -178,55 +178,62 @@
       document.getElementById('headerDot').classList.remove('active');
     }
 
-    async function onScanSuccess(decodedText) {
-      if (cooldown || decodedText === lastScanned) return;
+  async function onScanSuccess(decodedText) {
+  if (cooldown || decodedText === lastScanned) return;
 
-      cooldown = true;
-      lastScanned = decodedText;
-      setTimeout(() => { cooldown = false; }, 3000);
+  cooldown = true;
+  lastScanned = decodedText;
+  setTimeout(() => { cooldown = false; }, 3000);
 
-      let subjectId, lectureType, date;
+  let subjectId, lectureType, date, ts;
 
-      try {
-        let url = decodedText.startsWith('http')
-          ? new URL(decodedText)
-          : new URL('https://x.x?' + decodedText);
+  try {
+    let url = decodedText.startsWith('http')
+      ? new URL(decodedText)
+      : new URL('https://x.x?' + decodedText);
 
-        subjectId = url.searchParams.get('subjectId');
-        lectureType = url.searchParams.get('lectureType') || 'TH';
-        date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
-      } catch {
-        showStatus('Invalid QR code. Please scan the correct attendance QR.', 'err');
-        return;
-      }
+    subjectId   = url.searchParams.get('subjectId');
+    lectureType = url.searchParams.get('lectureType') || 'TH';
+    date        = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+    ts          = parseInt(url.searchParams.get('ts') || '0', 10);
+  } catch {
+    showStatus('Invalid QR code. Please scan the correct attendance QR.', 'err');
+    return;
+  }
 
-      if (!subjectId) {
-        showStatus('QR code is missing subject information.', 'err');
-        return;
-      }
+  // ── Expiry check ──
+  if (ts && Date.now() - ts > 35_000) {
+    showStatus('QR code has expired. Ask your teacher to refresh it.', 'err');
+    return;
+  }
 
-      const roll = localStorage.getItem('roll');
-      date = new Date(date).toISOString().split('T')[0];
-      const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
+  if (!subjectId) {
+    showStatus('QR code is missing subject information.', 'err');
+    return;
+  }
 
-      if (localStorage.getItem(key) === '1') {
-        showStatus('Attendance already marked for this session.', 'err');
-        return;
-      }
+  const roll = localStorage.getItem('roll');
+  date = new Date(date).toISOString().split('T')[0];
+  const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
 
-      html5QrCode.stop().then(() => {
-        scanning = false;
-        html5QrCode = null;
-        resetCameraUI();
-      }).catch(() => {
-        scanning = false;
-        html5QrCode = null;
-        resetCameraUI();
-      });
+  if (localStorage.getItem(key) === '1') {
+    showStatus('Attendance already marked for this session.', 'err');
+    return;
+  }
 
-      showScanMeta(subjectId, lectureType, date);
-      await markAttendance(subjectId, lectureType, date, key);
-    }
+  html5QrCode.stop().then(() => {
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+  }).catch(() => {
+    scanning = false;
+    html5QrCode = null;
+    resetCameraUI();
+  });
+
+  showScanMeta(subjectId, lectureType, date);
+  await markAttendance(subjectId, lectureType, date, key);
+}
 
     async function markAttendance(subjectId, lectureType, date, key) {
       const roll = localStorage.getItem('roll');
