@@ -1,714 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<meta name="theme-color" content="#0d0d0d"/>
-<meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="AttendQR"/>
-<title>AttendQR — Student Scanner</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<style>
-:root {
-  --bg:         #f8f8f8;
-  --surface:    #ffffff;
-  --surface-2:  #f5f5f5;
-  --surface-hover: #f9f9f9;
-  --border: 1px solid #e0e0e0;
-  --ink: #1a1a1a;
-  --ink-muted: #6b7280;
-  --ink-faint: #9ca3af;
-  --ok: #10b981;
-  --ok-bg: #ecfdf5;
-  --ok-border: #6ee7b7;
-  --err: #ef4444;
-  --err-bg: #fef2f2;
-  --err-border: #fca5a5;
-  --radius: 10px;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  min-height: 100vh;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 20px 80px;
-}
-
-.shell { width: 100%; max-width: 420px; }
-
-/* ── Header ── */
-.header {
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.header-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  margin-bottom: 5px;
-}
-.header h1 {
-  font-size: 21px;
-  font-weight: 300;
-  color: var(--ink);
-  letter-spacing: -0.03em;
-}
-.header-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #6b7280;
-  flex-shrink: 0;
-  transition: background 0.4s, box-shadow 0.4s;
-}
-.header-dot.active { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
-
-/* ── Student pill ── */
-#studentInfo {
-  display: none;
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--ink-muted);
-  background: var(--surface);
-  border: var(--border);
-  border-radius: 100px;
-  padding: 7px 14px;
-  margin-bottom: 16px;
-  width: fit-content;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-}
-#studentInfo:hover { color: var(--ink); }
-
-/* ── Sections ── */
-.section {
-  background: var(--surface);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
-  margin-bottom: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-.section-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin-bottom: 14px;
-}
-
-/* ── Inputs ── */
-input, select {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 15px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 400;
-  background: #ffffff;
-  color: var(--ink);
-  border: var(--border);
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-input + input { margin-top: 8px; }
-input::placeholder { color: #9ca3af; }
-input:focus {
-  border-color: #3b82f6;
-  background: #fafbff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* ── Buttons ── */
-.btn {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-  border: none;
-  letter-spacing: 0.01em;
-  touch-action: manipulation;
-}
-.btn:active { opacity: 0.85; transform: scale(0.985); }
-.btn-primary {
-  background: #1f2937;
-  color: #ffffff;
-  margin-top: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.btn-primary:hover { background: #374151; }
-.btn-outline {
-  background: transparent;
-  color: var(--ink-muted);
-  border: var(--border);
-  margin-top: 0;
-}
-.btn-outline:hover {
-  background: var(--surface-hover);
-  color: var(--ink);
-  border-color: #d1d5db;
-}
-
-/* ── Camera controls row ── */
-.camera-controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-.camera-controls .btn-primary { margin-top: 0; flex: 1; }
-.camera-controls .btn-outline { flex: 0 0 auto; width: auto; padding: 12px 18px; display: none; }
-
-/* ── Scanner area ── */
-#reader {
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f3f4f6;
-  border: var(--border);
-  min-height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-#reader-placeholder {
-  text-align: center;
-  color: #6b7280;
-  font-size: 13px;
-  line-height: 1.8;
-  padding: 24px;
-}
-#reader-placeholder svg { display: block; margin: 0 auto 12px; }
-
-/* Override html5-qrcode default styles */
-#reader video { border-radius: 0 !important; }
-#reader img { display: none !important; }
-#reader__scan_region { border: none !important; background: transparent !important; }
-#reader__header_message, #reader__status_span,
-#reader__camera_selection, #reader__camera_permission_button,
-#reader__filescan_input { display: none !important; }
-#reader__dashboard { display: none !important; }
-
-/* Scan overlay */
-.scan-overlay {
-  position: absolute; inset: 0;
-  pointer-events: none; display: none;
-}
-.scan-overlay.active { display: block; }
-.scan-line {
-  position: absolute; left: 15%; width: 70%; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--ok), transparent);
-  animation: scanMove 2s ease-in-out infinite;
-  box-shadow: 0 0 8px var(--ok);
-}
-@keyframes scanMove { 0% { top: 20% } 50% { top: 75% } 100% { top: 20% } }
-
-.scan-corners { position: absolute; inset: 14%; }
-.sc { position: absolute; width: 18px; height: 18px; }
-.sc::before, .sc::after { content: ''; position: absolute; background: var(--ink-faint); }
-.sc.tl { top:0; left:0 } .sc.tl::before { top:0; left:0; width:100%; height:1px } .sc.tl::after { top:0; left:0; width:1px; height:100% }
-.sc.tr { top:0; right:0 } .sc.tr::before { top:0; right:0; width:100%; height:1px } .sc.tr::after { top:0; right:0; width:1px; height:100% }
-.sc.bl { bottom:0; left:0 } .sc.bl::before { bottom:0; left:0; width:100%; height:1px } .sc.bl::after { bottom:0; left:0; width:1px; height:100% }
-.sc.br { bottom:0; right:0 } .sc.br::before { bottom:0; right:0; width:100%; height:1px } .sc.br::after { bottom:0; right:0; width:1px; height:100% }
-
-/* ── Status ── */
-#status { margin-top: 10px; }
-.msg {
-  padding: 12px 15px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  line-height: 1.5;
-}
-.msg-ok  {
-  color: #065f46;
-  background: var(--ok-bg);
-  border: 1px solid var(--ok-border);
-}
-.msg-err {
-  color: #991b1b;
-  background: var(--err-bg);
-  border: 1px solid var(--err-border);
-}
-.msg-loading {
-  color: var(--ink-muted);
-  background: var(--surface);
-  border: var(--border);
-  display: flex; align-items: center; gap: 10px;
-}
-.spin {
-  width: 13px; height: 13px;
-  border: 1.5px solid #e5e7eb;
-  border-top-color: var(--ink-muted);
-  border-radius: 50%;
-  animation: spin 0.65s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg) } }
-
-/* ── Scan info ── */
-.scan-meta {
-  margin-top: 10px;
-  padding: 10px 14px;
-  background: #f9fafb;
-  border: var(--border);
-  border-radius: 8px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10.5px;
-  color: var(--ink-faint);
-  line-height: 1.9;
-  display: none;
-}
-.scan-meta span { color: var(--ink-muted); }
-
-/* ── Success flash ── */
-.success-flash {
-  position: fixed; inset: 0; z-index: 999;
-  background: rgba(16, 185, 129, 0.08);
-  display: none; pointer-events: none;
-  animation: flash .5s ease-out both;
-}
-@keyframes flash { 0% { opacity: 1 } 100% { opacity: 0 } }
-
-/* ── Install modal ── */
-#install-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 16px 32px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.22s ease;
-}
-#install-overlay.visible { opacity: 1; pointer-events: all; }
-.install-modal {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 28px 24px 22px;
-  transform: translateY(28px);
-  transition: transform 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-}
-#install-overlay.visible .install-modal { transform: translateY(0); }
-.install-modal-icon {
-  width: 50px; height: 50px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
-  margin-bottom: 20px;
-}
-.install-modal-title {
-  font-size: 17px; font-weight: 500;
-  color: var(--ink); letter-spacing: -0.025em; margin-bottom: 8px;
-}
-.install-modal-body {
-  font-size: 13.5px; color: var(--ink-muted);
-  line-height: 1.7; margin-bottom: 26px;
-}
-.install-modal-body code {
-  font-family: 'DM Mono', monospace; font-size: 11.5px;
-  color: #6b7280; background: #f3f4f6;
-  padding: 2px 6px; border-radius: 4px; border: 1px solid #e5e7eb;
-}
-.install-modal-actions { display: flex; flex-direction: column; gap: 6px; }
-.im-btn {
-  width: 100%; padding: 13px; font-size: 14px;
-  font-family: 'DM Sans', sans-serif; font-weight: 500;
-  border-radius: 11px; cursor: pointer; border: none;
-  touch-action: manipulation;
-  transition: all 0.15s;
-  letter-spacing: 0.005em;
-}
-.im-btn:active { opacity: 0.85; transform: scale(0.984); }
-.im-btn-primary {
-  background: #1f2937;
-  color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.im-btn-primary:hover { background: #374151; }
-.im-btn-ghost {
-  background: transparent; color: var(--ink-muted);
-  font-size: 13px; font-weight: 400;
-}
-
-@media (max-width: 360px) {
-  body { padding: 24px 14px 72px; }
-  .header h1 { font-size: 19px; }
-}
-@supports (-webkit-touch-callout: none) {
-  input, .btn { font-size: 16px; }
-  #install-overlay { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AttendQR" />
+  <title>AttendQR — Student Scanner</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="success-flash" id="flashEl"></div>
+  <div class="success-flash" id="flashEl"></div>
 
-<div class="shell">
+  <div class="shell">
 
-  <!-- Header -->
-  <div class="header">
-    <div>
-      <div class="header-label">Attendance System</div>
-      <h1>AttendQR</h1>
-    </div>
-    <div class="header-dot" id="headerDot"></div>
-  </div>
-
-  <!-- Student pill (shown when saved) -->
-  <div id="studentInfo" onclick="editStudent()"></div>
-
-  <!-- Student details form -->
-  <div class="section" id="studentCard">
-    <div class="section-label">Your Details</div>
-    <input type="text" id="rollInput" placeholder="Roll number — e.g. 22CS01" autocomplete="off" inputmode="text"/>
-    <input type="text" id="nameInput" placeholder="Full name — e.g. Aryan Deshmukh" autocomplete="name"/>
-    <button class="btn btn-primary" onclick="saveStudent()">Save Details</button>
-  </div>
-
-  <!-- Scanner -->
-  <div class="section" style="margin-top:8px">
-    <div class="section-label">QR Scanner</div>
-
-    <div id="reader">
-      <div id="reader-placeholder">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="2" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5"/>
-          <rect x="19" y="2" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5"/>
-          <rect x="2" y="19" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5"/>
-          <rect x="5" y="5" width="5" height="5" rx=".5" fill="#2e2e2e"/>
-          <rect x="22" y="5" width="5" height="5" rx=".5" fill="#2e2e2e"/>
-          <rect x="5" y="22" width="5" height="5" rx=".5" fill="#2e2e2e"/>
-          <path d="M19 19h3v3h-3zM22 22h3v3h-3zM25 19h3v3h-3zM19 25h3v3h-3zM25 25h3v3h-3z" fill="#2e2e2e"/>
-        </svg>
-        Point your camera at the attendance QR code
+    <div class="header">
+      <div>
+        <div class="header-label">Attendance System</div>
+        <h1>AttendQR</h1>
       </div>
-      <div class="scan-overlay" id="scanOverlay">
-        <div class="scan-line"></div>
-        <div class="scan-corners">
-          <div class="sc tl"></div><div class="sc tr"></div>
-          <div class="sc bl"></div><div class="sc br"></div>
+      <div class="header-dot" id="headerDot"></div>
+    </div>
+
+    <!-- Shown after details are saved (locked, no edit) -->
+    <div id="studentInfo"></div>
+
+    <!-- Student details form (one-time entry) -->
+    <div class="section" id="studentCard">
+      <div class="section-label">Your Details</div>
+      <input type="text" id="rollInput" placeholder="Roll number — e.g. 22CS01" autocomplete="off" inputmode="text" />
+      <input type="text" id="nameInput" placeholder="Full name — e.g. Aryan Deshmukh" autocomplete="name" />
+      <button class="btn btn-primary" onclick="saveStudent()">Save Details</button>
+    </div>
+
+    <!-- Scanner -->
+    <div class="section">
+      <div class="section-label">QR Scanner</div>
+
+      <div id="reader">
+        <div id="reader-placeholder">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5" />
+            <rect x="19" y="2" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5" />
+            <rect x="2" y="19" width="11" height="11" rx="1.5" stroke="#2e2e2e" stroke-width="1.5" />
+            <rect x="5" y="5" width="5" height="5" rx=".5" fill="#2e2e2e" />
+            <rect x="22" y="5" width="5" height="5" rx=".5" fill="#2e2e2e" />
+            <rect x="5" y="22" width="5" height="5" rx=".5" fill="#2e2e2e" />
+            <path d="M19 19h3v3h-3zM22 22h3v3h-3zM25 19h3v3h-3zM19 25h3v3h-3zM25 25h3v3h-3z" fill="#2e2e2e" />
+          </svg>
+          Point your camera at the attendance QR code
+        </div>
+        <div class="scan-overlay" id="scanOverlay">
+          <div class="scan-line"></div>
+          <div class="scan-corners">
+            <div class="sc tl"></div>
+            <div class="sc tr"></div>
+            <div class="sc bl"></div>
+            <div class="sc br"></div>
+          </div>
         </div>
       </div>
+
+      <div class="camera-controls">
+        <button class="btn btn-primary" id="startBtn" onclick="startScanner()">Start Camera</button>
+        <button class="btn btn-outline" id="stopBtn" onclick="stopScanner()">Stop</button>
+      </div>
+
+      <div id="status"></div>
+      <div class="scan-meta" id="scanMeta"></div>
     </div>
 
-    <div class="camera-controls">
-      <button class="btn btn-primary" id="startBtn" onclick="startScanner()">Start Camera</button>
-      <button class="btn btn-outline" id="stopBtn" onclick="stopScanner()">Stop</button>
-    </div>
-
-    <div id="status"></div>
-    <div class="scan-meta" id="scanMeta"></div>
   </div>
 
-</div>
 
-<!-- Install modal -->
-<div id="install-overlay" onclick="handleOverlayClick(event)">
-  <div class="install-modal">
-    <div class="install-modal-icon">📋</div>
-    <div class="install-modal-title">Add to Home Screen</div>
-    <div class="install-modal-body" id="imBody">
-      Install AttendQR for instant one-tap access — no browser bar, no extra steps.
-    </div>
-    <div class="install-modal-actions">
-      <button class="im-btn im-btn-primary" id="installBtn" onclick="triggerInstall()">Install App</button>
-      <button class="im-btn im-btn-ghost" onclick="dismissInstall()">Not now</button>
-    </div>
-  </div>
-</div>
 
-<script>
-const API_BASE = "https://attendance-version-1.vercel.app";
+  <script>
+    const API_BASE = "https://attendance-version-1.vercel.app";
 
-// ── Student state ──
-function loadStudent() {
-  const roll = localStorage.getItem('roll');
-  const name = localStorage.getItem('name');
-  const pill = document.getElementById('studentInfo');
-  const card = document.getElementById('studentCard');
-  if (roll && name) {
-    pill.style.display = 'block';
-    pill.textContent = `${roll} · ${name} · tap to edit`;
-    card.style.display = 'none';
-  } else {
-    pill.style.display = 'none';
-    card.style.display = 'block';
-    document.getElementById('rollInput').value = '';
-    document.getElementById('nameInput').value = '';
-  }
-}
+    // ── Student state ──
+    // Details are locked after first save. No editing allowed.
+    function loadStudent() {
+      const roll = localStorage.getItem('roll');
+      const name = localStorage.getItem('name');
+      const locked = localStorage.getItem('detailsLocked') === '1';
+      const pill = document.getElementById('studentInfo');
+      const card = document.getElementById('studentCard');
 
-function saveStudent() {
-  const roll = document.getElementById('rollInput').value.trim();
-  const name = document.getElementById('nameInput').value.trim();
-  if (!roll || !name) { showStatus('Please enter both roll number and name.', 'err'); return; }
-  localStorage.setItem('roll', roll);
-  localStorage.setItem('name', name);
-  loadStudent();
-  clearStatus();
-}
+      if (roll && name && locked) {
+        pill.style.display = 'block';
+        pill.textContent = `${roll} · ${name}`;
+        card.style.display = 'none';
+      } else {
+        pill.style.display = 'none';
+        card.style.display = 'block';
+      }
+    }
 
-function editStudent() {
-  localStorage.removeItem('roll');
-  localStorage.removeItem('name');
-  loadStudent();
-  if (scanning) stopScanner();
-}
+    function saveStudent() {
+      const roll = document.getElementById('rollInput').value.trim();
+      const name = document.getElementById('nameInput').value.trim();
+      if (!roll || !name) { showStatus('Please enter both roll number and name.', 'err'); return; }
+      localStorage.setItem('roll', roll);
+      localStorage.setItem('name', name);
+      localStorage.setItem('detailsLocked', '1');
+      loadStudent();
+      clearStatus();
+    }
 
-// ── Scanner ──
-let html5QrCode = null;
-let scanning = false;
-let lastScanned = '';
-let cooldown = false;
+    // ── Scanner ──
+    let html5QrCode = null;
+    let scanning = false;
+    let lastScanned = '';
+    let cooldown = false;
 
-function startScanner() {
-  const roll = localStorage.getItem('roll');
-  const name = localStorage.getItem('name');
+    function startScanner() {
+      const roll = localStorage.getItem('roll');
+      const name = localStorage.getItem('name');
 
-  if (!roll || !name) {
-    showStatus('Save your details first before scanning.', 'err');
-    document.getElementById('studentCard').style.display = 'block';
-    document.getElementById('rollInput').focus();
-    return;
-  }
+      if (!roll || !name) {
+        showStatus('Save your details first before scanning.', 'err');
+        document.getElementById('studentCard').style.display = 'block';
+        document.getElementById('rollInput').focus();
+        return;
+      }
 
-  if (scanning) return;
+      if (scanning) return;
 
-  clearStatus();
-  document.getElementById('reader-placeholder').style.display = 'none';
-  document.getElementById('scanOverlay').classList.add('active');
-  document.getElementById('startBtn').style.display = 'none';
-  document.getElementById('stopBtn').style.display = 'block';
-  document.getElementById('headerDot').classList.add('active');
+      clearStatus();
+      document.getElementById('reader-placeholder').style.display = 'none';
+      document.getElementById('scanOverlay').classList.add('active');
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('stopBtn').style.display = 'block';
+      document.getElementById('headerDot').classList.add('active');
 
-  html5QrCode = new Html5Qrcode('reader');
-  scanning = true;
+      html5QrCode = new Html5Qrcode('reader');
+      scanning = true;
 
-  html5QrCode.start(
-    { facingMode: 'environment' },
-    { fps: 12, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
-    onScanSuccess
-  ).catch(() => {
-    scanning = false;
-    resetCameraUI();
-    showStatus('Camera permission denied or unavailable.', 'err');
-  });
-}
+      html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 12, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+        onScanSuccess
+      ).catch(() => {
+        scanning = false;
+        resetCameraUI();
+        showStatus('Camera permission denied or unavailable.', 'err');
+      });
+    }
 
-function stopScanner() {
-  if (!scanning || !html5QrCode) return;
+    function stopScanner() {
+      if (!scanning || !html5QrCode) return;
+      html5QrCode.stop().then(() => {
+        scanning = false;
+        html5QrCode = null;
+        resetCameraUI();
+        clearStatus();
+      }).catch(() => {
+        scanning = false;
+        html5QrCode = null;
+        resetCameraUI();
+      });
+    }
 
-  html5QrCode.stop().then(() => {
-    scanning = false;
-    html5QrCode = null;
-    resetCameraUI();
-    clearStatus();
-  }).catch(() => {
-    scanning = false;
-    html5QrCode = null;
-    resetCameraUI();
-  });
-}
+    function resetCameraUI() {
+      document.getElementById('reader-placeholder').style.display = 'block';
+      document.getElementById('scanOverlay').classList.remove('active');
+      document.getElementById('startBtn').style.display = 'block';
+      document.getElementById('stopBtn').style.display = 'none';
+      document.getElementById('headerDot').classList.remove('active');
+    }
 
-async function onScanSuccess(decodedText) {
-  if (cooldown || decodedText === lastScanned) return;
+    async function onScanSuccess(decodedText) {
+      if (cooldown || decodedText === lastScanned) return;
 
-  cooldown = true;
-  lastScanned = decodedText;
+      cooldown = true;
+      lastScanned = decodedText;
+      setTimeout(() => { cooldown = false; }, 3000);
 
-  setTimeout(() => { cooldown = false; }, 3000);
+      let subjectId, lectureType, date;
 
-  let subjectId, lectureType, date;
+      try {
+        let url = decodedText.startsWith('http')
+          ? new URL(decodedText)
+          : new URL('https://x.x?' + decodedText);
 
-  try {
-    let url = decodedText.startsWith('http')
-      ? new URL(decodedText)
-      : new URL('https://x.x?' + decodedText);
+        subjectId = url.searchParams.get('subjectId');
+        lectureType = url.searchParams.get('lectureType') || 'TH';
+        date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+      } catch {
+        showStatus('Invalid QR code. Please scan the correct attendance QR.', 'err');
+        return;
+      }
 
-    subjectId   = url.searchParams.get('subjectId');
-    lectureType = url.searchParams.get('lectureType') || 'TH';
-    date        = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
-  } catch {
-    showStatus('Invalid QR code. Please scan the correct attendance QR.', 'err');
-    return;
-  }
+      if (!subjectId) {
+        showStatus('QR code is missing subject information.', 'err');
+        return;
+      }
 
-  if (!subjectId) {
-    showStatus('QR code is missing subject information.', 'err');
-    return;
-  }
+      const roll = localStorage.getItem('roll');
+      date = new Date(date).toISOString().split('T')[0];
+      const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
 
-const roll = localStorage.getItem('roll');
+      if (localStorage.getItem(key) === '1') {
+        showStatus('Attendance already marked for this session.', 'err');
+        return;
+      }
 
-// FIXED duplicate check (normalized + consistent key)
-date = new Date(date).toISOString().split('T')[0];
+      html5QrCode.stop().then(() => {
+        scanning = false;
+        html5QrCode = null;
+        resetCameraUI();
+      }).catch(() => {
+        scanning = false;
+        html5QrCode = null;
+        resetCameraUI();
+      });
 
-const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
+      showScanMeta(subjectId, lectureType, date);
+      await markAttendance(subjectId, lectureType, date, key);
+    }
 
-if (localStorage.getItem(key) === "1") {
-  showStatus('⚠️ Attendance already marked for this session.', 'err');
-  return;
-}
-  // Stop scanner before API call
-  html5QrCode.stop().then(() => {
-    scanning = false;
-    html5QrCode = null;
-    resetCameraUI();
-  }).catch(() => {
-    scanning = false;
-    html5QrCode = null;
-    resetCameraUI();
-  });
+    async function markAttendance(subjectId, lectureType, date, key) {
+      const roll = localStorage.getItem('roll');
+      const name = localStorage.getItem('name');
 
-  showScanMeta(subjectId, lectureType, date);
+      showStatus('Marking attendance…', 'loading');
 
-  const success = await markAttendance(subjectId, lectureType, date);
+      try {
+        const res = await fetch(API_BASE + '/attendance/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentRoll: roll, studentName: name, subjectId, lectureType, date })
+        });
 
-  // ✅ SAVE ONLY IF SUCCESS
-  if (success) {
-    localStorage.setItem(key, "1");
-  }
-}
+        const data = await res.json();
 
-async function markAttendance(subjectId, lectureType, date) {
-  const roll = localStorage.getItem('roll');
-  const name = localStorage.getItem('name');
+        if (!res.ok) {
+          showStatus(data.error || 'Failed to record attendance.', 'err');
+          return;
+        }
 
-  showStatus('Marking attendance…', 'loading');
+        localStorage.setItem(key, '1');
+        triggerSuccessFlash();
+        const ltLabel = data.lectureType === 'PR' ? 'Practical' : 'Theory';
+        showStatus(`Attendance recorded — ${ltLabel} · ${date}`, 'ok');
 
-  try {
-    const res = await fetch(API_BASE + '/attendance/checkin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        studentRoll: roll,
-        studentName: name,
-        subjectId,
-        lectureType,
-        date
-      })
+      } catch {
+        showStatus('Could not reach server. Check your connection.', 'err');
+      }
+    }
+
+    // ── UI helpers ──
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      const classMap = { ok: 'msg msg-ok', err: 'msg msg-err', loading: 'msg msg-loading' };
+      el.innerHTML = type === 'loading'
+        ? `<div class="${classMap[type]}"><div class="spin"></div>${msg}</div>`
+        : `<div class="${classMap[type]}">${msg}</div>`;
+    }
+
+    function clearStatus() {
+      document.getElementById('status').innerHTML = '';
+    }
+
+    function showScanMeta(subjectId, lectureType, date) {
+      const el = document.getElementById('scanMeta');
+      el.style.display = 'block';
+      el.innerHTML = `type &nbsp;→ <span>${lectureType}</span><br>date &nbsp;→ <span>${date}</span>`;
+    }
+
+    function triggerSuccessFlash() {
+      const el = document.getElementById('flashEl');
+      el.style.display = 'block';
+      el.style.animation = 'none'; void el.offsetWidth;
+      el.style.animation = 'flash .5s ease-out both';
+      setTimeout(() => { el.style.display = 'none'; }, 600);
+    }
+
+    // ── PWA install ──
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
     });
+    window.addEventListener('appinstalled', () => { deferredPrompt = null; });
 
-    const data = await res.json();
-
-if (!res.ok) {
-  showStatus((data.error || 'Failed to record attendance.'), 'err');
-  return false;
-}
-
-// ✅ SAVE DUPLICATE KEY HERE (IMPORTANT)
-const key = `att_${roll}_${subjectId}_${lectureType}_${date}`;
-localStorage.setItem(key, "1");
-
-triggerSuccessFlash();
-
-const ltLabel = data.lectureType === 'PR' ? 'Practical' : 'Theory';
-showStatus(`Attendance recorded — ${ltLabel} · ${date}`, 'ok');
-
-return true;
-
-  } catch {
-    showStatus('Could not reach server. Check your connection.', 'err');
-    return false;
-  }
-}
-// ── UI helpers ──
-function showStatus(msg, type) {
-  const el = document.getElementById('status');
-  const classMap = { ok: 'msg msg-ok', err: 'msg msg-err', loading: 'msg msg-loading' };
-  el.innerHTML = type === 'loading'
-    ? `<div class="${classMap[type]}"><div class="spin"></div>${msg}</div>`
-    : `<div class="${classMap[type]}">${msg}</div>`;
-}
-
-function clearStatus() {
-  document.getElementById('status').innerHTML = '';
-}
-
-function showScanMeta(subjectId, lectureType, date) {
-  const el = document.getElementById('scanMeta');
-  el.style.display = 'block';
-  el.innerHTML = `type &nbsp;→ <span>${lectureType}</span><br>date &nbsp;→ <span>${date}</span>`;
-}
-
-function triggerSuccessFlash() {
-  const el = document.getElementById('flashEl');
-  el.style.display = 'block';
-  el.style.animation = 'none'; void el.offsetWidth;
-  el.style.animation = 'flash .5s ease-out both';
-  setTimeout(() => { el.style.display = 'none'; }, 600);
-}
-
-// ── PWA install ──
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  if (!localStorage.getItem('installDismissed')) setTimeout(showInstall, 2500);
-});
-function showInstall() { document.getElementById('install-overlay').classList.add('visible'); }
-function dismissInstall() {
-  document.getElementById('install-overlay').classList.remove('visible');
-  localStorage.setItem('installDismissed', '1');
-}
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('install-overlay')) dismissInstall();
-}
-async function triggerInstall() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt(); await deferredPrompt.userChoice;
-  deferredPrompt = null; dismissInstall();
-}
-window.addEventListener('appinstalled', dismissInstall);
-
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.matchMedia('(display-mode:standalone)').matches || navigator.standalone === true;
-if (isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
-  setTimeout(() => {
-    document.getElementById('imBody').innerHTML =
-      'Tap the <code>Share</code> icon in Safari, then select <code>Add to Home Screen</code>.';
-    document.getElementById('installBtn').style.display = 'none';
-    showInstall();
-  }, 2500);
-}
-
-// ── Init ──
-loadStudent();
-document.getElementById('rollInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('nameInput').focus(); });
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveStudent(); });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-</script>
+    // ── Init ──
+    loadStudent();
+    document.getElementById('rollInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('nameInput').focus(); });
+    document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveStudent(); });
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => { });
+  </script>
 </body>
+
 </html>
